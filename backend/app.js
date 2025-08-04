@@ -10,8 +10,6 @@ const reviewRoutes = require('./routes/reviews');
 const authRoutes = require('./routes/auth');
 require('dotenv').config();
 
-console.log('Loaded JWT_SECRET:', process.env.JWT_SECRET);
-
 const app = express();
 
 // Middleware

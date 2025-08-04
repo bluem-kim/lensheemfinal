@@ -191,10 +191,6 @@ Thumbs.db
 *.swo
 *~
 
-# Uploads directory
-backend/public/uploads/
-frontend/uploads/
-
 # Test files
 test-*.js
 test-*.pdf 

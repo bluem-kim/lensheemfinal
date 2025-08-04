@@ -472,6 +472,43 @@
 
   <script src="assets/js/bootstrap.min.js"></script>
   <script>
+    // Load header and update navbar
+    $(document).ready(function() {
+      $('#header').load('header.html', function() {
+        console.log('Header loaded');
+        updateNavbar();
+      });
+    });
+
+    function updateNavbar() {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+
+      if (token && userId) {
+        $('#login-link, #register-link').addClass('d-none');
+        $('#user-dropdown').removeClass('d-none');
+
+        // Fetch user data
+        $.get(`/api/users/customers/${userId}`, function (res) {
+          if (res.success && res.data) {
+            const data = res.data;
+            const fullName = `${data.fname || ''} ${data.lname || ''}`.trim();
+            $('#username').text(fullName || 'USER');
+            if (data.image_path) {
+              $('.profile-img').attr('src', `/${data.image_path}`);
+            }
+          }
+        }).fail(() => {
+          console.warn('User data fetch failed. Falling back to default user.');
+          $('#username').text('USER');
+        });
+
+      } else {
+        $('#login-link, #register-link').removeClass('d-none');
+        $('#user-dropdown').addClass('d-none');
+      }
+    }
+
     // Get review ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const reviewId = urlParams.get('id');

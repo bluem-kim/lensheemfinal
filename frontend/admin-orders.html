@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1326,6 +1326,9 @@
                 if (searchParams.dateTo) queryParams += `&dateTo=${encodeURIComponent(searchParams.dateTo)}`;
                 if (searchParams.region) queryParams += `&region=${encodeURIComponent(searchParams.region)}`;
                 
+                // Add sorting by date_placed descending to show latest orders on top
+                queryParams += `&sortBy=date_placed&sortOrder=desc`;
+                
                 $.ajax({
                     url: `/api/orders/admin/all?${queryParams}`,
                     method: 'GET',
@@ -1394,7 +1397,7 @@
                             }
                         } else {
                             if (page === 1) {
-                                $('#ordersTable tbody').html('<tr><td colspan="10"><div style="text-align: center; padding: 40px; color: #d32f2f;">Failed to load orders.</div></td></tr>');
+
                             }
                         }
                     },
@@ -1409,7 +1412,6 @@
                     }
                 });
             }
-
             function updateAnalytics(data) {
                 if (data && data.length > 0) {
                     const total = data.length;

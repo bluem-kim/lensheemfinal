@@ -601,7 +601,57 @@ body {
             $('#header').load('header.html', function() {
                 // Header loaded successfully
                 console.log('Header loaded');
+                // Update navbar user state and cart count here
+                updateNavbar();
             });
+
+        function updateNavbar() {
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
+
+            if (token && userId) {
+                // Use vanilla JavaScript instead of jQuery
+                const loginLink = document.getElementById('login-link');
+                const registerLink = document.getElementById('register-link');
+                const userDropdown = document.getElementById('user-dropdown');
+                
+                if (loginLink) loginLink.classList.add('d-none');
+                if (registerLink) registerLink.classList.add('d-none');
+                if (userDropdown) userDropdown.classList.remove('d-none');
+
+                // Fetch user data using vanilla JavaScript
+                fetch(`/api/users/customers/${userId}`)
+                    .then(response => response.json())
+                    .then(res => {
+                        if (res.success && res.data) {
+                            const data = res.data;
+                            const fullName = `${data.fname || ''} ${data.lname || ''}`.trim();
+                            const usernameElement = document.getElementById('username');
+                            const profileImg = document.querySelector('.profile-img');
+                            
+                            if (usernameElement) usernameElement.textContent = fullName || 'USER';
+                            if (profileImg && data.image_path) {
+                                profileImg.src = `/${data.image_path}`;
+                            }
+                        }
+                    })
+                    .catch(() => {
+                        console.warn('User data fetch failed. Falling back to default user.');
+                        const usernameElement = document.getElementById('username');
+                        if (usernameElement) usernameElement.textContent = 'USER';
+                    });
+
+            } else {
+                // Use vanilla JavaScript instead of jQuery
+                const loginLink = document.getElementById('login-link');
+                const registerLink = document.getElementById('register-link');
+                const userDropdown = document.getElementById('user-dropdown');
+                
+                if (loginLink) loginLink.classList.remove('d-none');
+                if (registerLink) registerLink.classList.remove('d-none');
+                if (userDropdown) userDropdown.classList.add('d-none');
+            }
+        }
         });
 
         // Check if user is logged in (optional for viewing order details)
@@ -905,6 +955,52 @@ body {
             $(`#review-form-${itemId}`).addClass('show');
         });
 
+        // Remove validation error on input
+        $(document).on('input', '.review-textarea', function() {
+            $(this).removeClass('is-invalid');
+            $(this).next('.error-message').remove();
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = $('<div></div>');
+            toast.text(message);
+            toast.css({
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                padding: '15px 20px',
+                'border-radius': '8px',
+                color: 'white',
+                'font-weight': '500',
+                'z-index': 10000,
+                'box-shadow': '0 4px 15px rgba(0,0,0,0.15)',
+                cursor: 'pointer',
+                'min-width': '250px',
+                'text-align': 'center',
+                'font-size': '14px',
+                'letter-spacing': '0.5px',
+                'user-select': 'none',
+                'background-color': type === 'error' ? '#e74c3c' : (type === 'success' ? '#27ae60' : '#ffc107')
+            });
+            $('body').append(toast);
+            toast.hide().fadeIn(300);
+
+            // Remove toast on click
+            toast.on('click', function() {
+                $(this).fadeOut(300, function() {
+                    $(this).remove();
+                });
+            });
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                toast.fadeOut(300, function() {
+                    $(this).remove();
+                });
+            }, 3000);
+        }
+
         // Check if reviews already exist for items
         function checkExistingReviews(orderId, items) {
             // Get customer ID from localStorage or session
@@ -1056,6 +1152,23 @@ body {
                     alert('Please select a rating');
                     return;
                 }
+                
+                if (!reviewText) {
+                    // Show inline validation error with red border and message
+                    const $textarea = $(`#review-text-${itemId}`);
+                    $textarea.addClass('is-invalid');
+                    if (!$textarea.next('.error-message').length) {
+                        $textarea.after('<span class="error-message" style="color: red; font-size: 0.9rem;">Please enter your review text.</span>');
+                    }
+                    // Show toast error message for validation
+                    showToast('Please fill in all required fields correctly.', 'error');
+                    return;
+                } else {
+                    // Remove error message and red border if present
+                    const $textarea = $(`#review-text-${itemId}`);
+                    $textarea.removeClass('is-invalid');
+                    $textarea.next('.error-message').remove();
+                }
 
                 // Disable submit button
                 $(`#submit-review-${itemId}`).prop('disabled', true).text('Submitting...');
@@ -1091,11 +1204,18 @@ body {
                     success: function(response) {
                         console.log('Review submission success:', response);
                         if (response.success) {
-                            // Show success message
-                            alert('Review submitted successfully!');
+                            // Show toast success message
+                            showToast('Review submitted successfully!', 'success');
+
+                            // Show success message inline using jQuery
+                            if (!$(`#review-section-${itemId} .success-message`).length) {
+                                $(`#review-section-${itemId}`).prepend('<div class="success-message" style="color: green; font-weight: 600; margin-bottom: 10px;">Review submitted successfully!</div>');
+                            }
                             
-                            // Completely remove the entire review section
-                            $(`#review-section-${itemId}`).remove();
+                            // Completely remove the entire review section after a delay
+                            setTimeout(() => {
+                                $(`#review-section-${itemId}`).remove();
+                            }, 2000);
                             
                             // Clear stored images
                             if (window.reviewImages && window.reviewImages[itemId]) {
@@ -1107,7 +1227,9 @@ body {
                                 delete window.itemRatings[itemId];
                             }
                         } else {
-                            alert(response.message || 'Failed to submit review');
+                            if (!$(`#review-section-${itemId} .error-message`).length) {
+                                $(`#review-section-${itemId}`).prepend(`<div class="error-message" style="color: red; font-weight: 600; margin-bottom: 10px;">${response.message || 'Failed to submit review'}</div>`);
+                            }
                             $(`#submit-review-${itemId}`).prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i>Submit Review');
                         }
                     },
@@ -1135,7 +1257,9 @@ body {
                             console.error('Could not parse error response:', e);
                         }
                         
-                        alert(errorMessage);
+                        if (!$(`#review-section-${itemId} .error-message`).length) {
+                            $(`#review-section-${itemId}`).prepend(`<div class="error-message" style="color: red; font-weight: 600; margin-bottom: 10px;">${errorMessage}</div>`);
+                        }
                         
                         if (shouldHideReviewSection) {
                             // Hide the review form and show reviewed message

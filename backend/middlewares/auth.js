@@ -1,4 +1,3 @@
-const connection = require('../config/database'); 
 const jwt = require("jsonwebtoken");
 const db = require("../config/database");
 
@@ -7,11 +6,7 @@ exports.isAuthenticatedUser = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
   const tabContext = req.headers['x-tab-context']; // New: Get tab context
 
-  console.log('Auth Middleware - Authorization header:', authHeader);
-  console.log('Auth Middleware - Token:', token);
-
   if (!token) {
-    console.log('Auth Middleware - No token provided');
     return res.status(401).json({ 
       success: false,
       message: 'Authorization token required' 
@@ -20,10 +15,6 @@ exports.isAuthenticatedUser = (req, res, next) => {
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
-      console.log('Auth Middleware - JWT verify error:', err);
-      if (!process.env.JWT_SECRET) {
-        console.error('JWT_SECRET environment variable is not set!');
-      }
       return res.status(403).json({ 
         success: false,
         message: err.name === 'TokenExpiredError' 
@@ -32,16 +23,7 @@ exports.isAuthenticatedUser = (req, res, next) => {
       });
     }
 
-    // Normalize role to lowercase
-    if (decoded.role) {
-      decoded.role = decoded.role.toLowerCase();
-    }
-
-    console.log('Auth Middleware - Decoded token:', decoded);
-
     // New: Basic tab context validation
-    // Temporarily disable tab context validation to allow user access
-    /*
     if (tabContext) {
       if (decoded.role === 'admin' && tabContext !== 'admin') {
         return res.status(403).json({
@@ -57,7 +39,6 @@ exports.isAuthenticatedUser = (req, res, next) => {
         });
       }
     }
-    */
 
     req.user = decoded;
     next();
